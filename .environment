@@ -1,0 +1,12 @@
+
+
+
+setenv PROJ xprojedit 
+setenv PROJHOME "~/projects/$PROJ"
+
+setenv PATH $PROJHOME/bin:$PATH
+setenv PYTHONPATH ${PROJHOME}/python:${PYTHONPATH}
+source $PROJHOME/.aliases
+cd $PROJHOME
+
+

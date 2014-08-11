@@ -1,0 +1,85 @@
+#!/usr/bin/env python
+import os
+import sys
+import argparse
+
+def tree(args): pass
+def find(args): pass
+def newgrp(args): pass
+def rmgrp(args): pass
+def addfiles(args): pass
+def addfolder(args): pass
+
+def parse_args(args=sys.argv[1:]):
+    """return options."""
+    parser = argparse.ArgumentParser(description="wrapper for mod_pbxproj.py")
+
+    subcmds = parser.add_subparsers(title="commands")
+
+    # --- tree command
+    tree_ = subcmds.add_parser("tree", help="show tree structure.")
+    tree_.set_defaults(func=tree)
+    tree_.add_argument('xcodeprojectpath', help='path to xcodeproject.')
+    tree_.add_argument('-d', '--directories-only',
+                       dest='dir_only', help='only show directories.')
+    tree_.add_argument('-i', '--no-indent',
+                       dest='no_indent', help='print tree w/o indents.')
+    tree_.add_argument('location', help='starting location')
+
+    
+    # --- find command
+    find_ = subcmds.add_parser("find", help="find file or folder in xproj.")
+    find_.set_defaults(func=find)
+    find_.add_argument('xcodeprojectpath', help='path to xcodeproject.')
+    find_.add_argument('file', help="file or folder to search project for.")
+
+    # --- newgrp command
+    newgrp_ = subcmds.add_parser("newgrp", help="create new group.")
+    newgrp_.set_defaults(func=newgrp)
+    newgrp_.add_argument('xcodeprojectpath', help='path to xcodeproject.')
+    newgrp_.add_argument('groupname',
+                         help='name of group to add')
+    newgrp_.add_argument('location', help='location to add group to.')
+
+    # --- rmgrp command
+    rmgrp_ = subcmds.add_parser("rmgrp", help="remove group.")
+    rmgrp_.set_defaults(func=rmgrp)
+    rmgrp_.add_argument('xcodeprojectpath', help='path to xcodeproject.')
+    rmgrp_.add_argument('location',
+                        help='location of group to remove')
+
+    # --- addfiles command
+    addfiles_ = subcmds.add_parser("addfiles", help="add file/s to group.")
+    addfiles_.set_defaults(func=addfiles)
+    addfiles_.add_argument('xcodeprojectpath', help='path to xcodeproject.')
+    addfiles_.add_argument('-r', '--recursive', dest='recursive',
+                           help=('for folders, recurse and add all files '
+                                 'encountered to location.'))
+    addfiles_.add_argument('input', nargs='+',
+                           help='input file--or folder, if recursive--'
+                                'to add.')
+    addfiles_.add_argument('location', help='location to add file/s to.')
+
+    # --- addfolder command
+    addfolder_ = subcmds.add_parser("addfolder", help="add folder to group "
+                                                      "as blue folder.")
+    addfolder_.set_defaults(func=addfolder)
+    addfolder_.add_argument('xcodeprojectpath', help='path to xcodeproject.')
+    addfolder_.add_argument('input', help='folder to add.')
+    addfolder_.add_argument('location', help='location to add file/s to.')
+
+
+
+    parsed = parser.parse_args(args) 
+ 
+    return parser.parse_args(args) 
+     
+
+
+def main():
+    options = parse_args()
+    import pdb; pdb.set_trace();
+    print args.func(options)
+
+if __name__ == '__main__':
+    main()
