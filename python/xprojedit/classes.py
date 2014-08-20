@@ -12,7 +12,7 @@ import uuid
 BLD_PBXNATIVETARGETNOTE = 'Build configuration list for PBXNativeTarget "TARGET_NAME"'
 BLD_UNITY_IPHONENOTE = 'Build configuration list for PBXProject "Unity-iPhone"'
 
-# list of sections and whether they should be written with linefeeds or without
+# list of sections and whether they should be written with linefeeds or without.
 SECTIONS = [('PBXBuildFile', False),
             ('PBXCopyFilesBuildPhase', True),
             ('PBXFileReference', False),
@@ -31,6 +31,7 @@ SECTIONS = [('PBXBuildFile', False),
             ('PBXReferenceProxy', True),
             ('PBXContainerItemProxy', True)]
 
+# list of filetypes and which buildphases they should be added to.
 FILETYPE_BUILDPHASES = {
     '.a': ('archive.ar', 'PBXFrameworksBuildPhase'),
     '.app': ('wrapper.application', None),
@@ -324,10 +325,10 @@ class XcodeObject():
     def __init__(self, filepath):
         self.filepath = filepath
 
-        p = subprocess.Popen(['plutil', '-convert', 'xml1', '-o', '-', filepath],
+        plutilcmd = 'plutil -convert xml1 -o - %s' % filepath
+        p = subprocess.Popen(plutilcmd.split(),
                              stdout=subprocess.PIPE)
         stdout, stderr = p.communicate()
-
         self.plistdata = plistlib.readPlistFromString(stdout)
 
     def root(self):
