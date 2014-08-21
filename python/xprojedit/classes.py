@@ -113,7 +113,11 @@ class XcodeNode(collections.MutableMapping):
 
     def __getattr__(self, attr):
         """allow dot notation for keys."""
-        return self.__getitem__(attr)
+        if attr in self.keys():
+            return self.__getitem__(attr)
+        elif attr in self.nodedata.__dict__.keys():
+            return self.nodedata.__dict__.get(attr)
+        return None
 
     def __getitem__(self, key):
         """return converted version of the value paired with given key."""
@@ -169,11 +173,23 @@ class XcodeNode(collections.MutableMapping):
     def remove_child(self, child):
         """remove child from chilren."""
         if hasattr(self, 'children'):
+            if isinstance(child, str):
+                child = XcodeNode(self.project, self, child)
+            childid = child.guid
 
-            if not isinstance(child, str):
-                child = child.guid
+            if child.children:
+                for grandchild in child.children:
+                    child.remove_child(grandchild)
 
-            self.rawdata['objects'][self.guid]['children'].remove(child)
+            buildfiles = [bfuid
+                          for bfuid, bf in self.rawdata['objects'].items()
+                          if bf['isa'] == 'PBXBuildFile' and
+                          bf['fileRef'] == childid]
+            for buildfile_uid in buildfiles:
+                self.rawdata['objects'].pop(buildfile_uid)
+
+            self.rawdata['objects'].pop(childid)
+            self.rawdata['objects'][self.guid]['children'].remove(childid)
 
     def add_folder(self, folderpath, excludes=None, recursive=True):
         """add folder to this node."""
@@ -238,16 +254,17 @@ class XcodeNode(collections.MutableMapping):
 
         filerefobj = self.getcreate_file(filepath, tree)
 
-        if create_build_files and filerefobj.build_phase:
-            phases = self.get_build_phases(filerefobj.build_phase)
+        build_phase = filerefobj.extra['build_phase']
 
+        # create_build_files adds files to certain buildphases
+        if create_build_files and build_phase:
+            phases = self.get_build_phases(build_phase)
             for phase in phases:
-                pass
-                """
-                # This is not finished because I don't know how to test it.
-                build_file_data = {'fileRef': filerefobj.id}
+                build_file_data = {'fileRef': filerefobj.id,
+                                   'isa': 'PBXBuildFile'}
                 buildfile_obj = UniqueObject(build_file_data)
-                """
+                phase['files'].append(buildfile_obj.id)
+                self.rawdata['objects'][buildfile_obj.id] = buildfile_obj
 
     def get_relative(self, filepath):
         """return filepath relative to project."""
@@ -262,22 +279,36 @@ class XcodeNode(collections.MutableMapping):
                 if p.get('isa') == phase_name]
 
     def getcreate_file(self, filepath, sourcetree):
-        """create filereference when needed, return filereference."""
+        """create and return filereference.
+
+        delete when initially found along with buildfiles.
+        """
         children = self.children
-        for child in children:
-            if child.path == filepath:
-                return child
+        foundchild = None
+        for chld in children:
+            if chld.path == filepath:
+                foundchild = chld
+                self.rawdata['objects'].pop(chld.guid)
+                self.rawdata['objects'][self.guid]['children'].remove(chld.guid)
+
+                # delete associated build files otherwise we'll have duplicates
+                buildfiles = [bfuid
+                              for bfuid, bf in self.rawdata['objects'].items()
+                              if bf['isa'] == 'PBXBuildFile' and
+                              bf['fileRef'] == chld.guid]
+                for buildfile_uid in buildfiles:
+                    self.rawdata['objects'].pop(buildfile_uid)
 
         filetype, build_phase = guess_filetypeandbuildphase(filepath)
-
-        filedata = {'path': filepath,
-                    'isa': 'PBXFileReference',
-                    'name': os.path.split(filepath)[1],
-                    'sourceTree': sourcetree,
-                    'lastKnownFileType': filetype}
+        if not foundchild:
+            foundchild = {'path': filepath,
+                          'isa': 'PBXFileReference',
+                          'name': os.path.split(filepath)[1],
+                          'sourceTree': sourcetree,
+                          'lastKnownFileType': filetype}
 
         extra = {'build_phase': build_phase}
-        filerefobj = UniqueObject(filedata, extra)
+        filerefobj = UniqueObject(dict(foundchild), extra)
 
         self.rawdata['objects'][filerefobj.id] = filerefobj
         self.rawdata['objects'][self.guid]['children'].append(filerefobj.id)
@@ -309,15 +340,14 @@ class XcodeNode(collections.MutableMapping):
 class UniqueObject(dict):
     def __init__(self, data, extra={}):
         dict.__init__(self, data)
-        if hasattr(data, 'id'):
+        if hasattr(data, 'id') and data.id:
             self.id = data.id
         else:
             # create unique id, when needed
             self.id = ''.join(str(uuid.uuid4()).upper().split('-')[1:])
 
         # extra variables
-        for key, value in extra.iteritems():
-            setattr(self, key, value)
+        self.extra = extra
 
 
 class XcodeObject():
@@ -382,7 +412,7 @@ class XcodeObject():
 
             # fix target_name
             if object_type == 'PBXNativeTarget':
-                build_conf_list = comments[val_objct.get('buildConfigurationList')]
+                build_conf_list = comments[val_objct['buildConfigurationList']]
                 new_target_name = comments[key_id]
                 new_build_conf_list = build_conf_list.replace('TARGET_NAME',
                                                               new_target_name)
