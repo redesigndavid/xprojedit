@@ -8,7 +8,7 @@ import subprocess
 import re
 import uuid
 
-# comments
+# special comments
 BLD_PBXNATIVETARGETNOTE = 'Build configuration list for PBXNativeTarget "TARGET_NAME"'
 BLD_UNITY_IPHONENOTE = 'Build configuration list for PBXProject "Unity-iPhone"'
 
@@ -338,6 +338,9 @@ class XcodeNode(collections.MutableMapping):
 
 
 class UniqueObject(dict):
+
+    """Uniqify Object by associating uuid string to it."""
+
     def __init__(self, data, extra={}):
         dict.__init__(self, data)
         if hasattr(data, 'id') and data.id:
