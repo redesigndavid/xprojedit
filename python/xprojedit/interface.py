@@ -3,6 +3,28 @@ import os
 import re
 
 from xprojedit.classes import XcodeObject
+import mod_pbxproj
+
+
+def _cleanup(xcodeobject, guid):
+    node = xcodeobject.mod_pbxproj.get('objects').get(guid)
+
+    # remove build files
+    references = set()
+    for objectid, objectvalue in xcodeobject.mod_pbxproj.get('objects').items():
+        if (guid in objectvalue.values() and
+                objectvalue.get('isa') == 'PBXBuildFile'):
+            references.add(objectid)
+
+    for referenceid in references:
+        _cleanup(xcodeobject, referenceid)
+
+    # recurse
+    if 'children' in node:
+        for childid in node['children']:
+            _cleanup(xcodeobject, childid)
+
+    xcodeobject.mod_pbxproj.get('objects').pop(guid)
 
 
 def tree_lines(xcodepath, noindent, dir_only, location='//'):
@@ -25,16 +47,16 @@ def add_folder(xcodepath, diskpath, pathtogroup, nosave=False):
     xcodepath, xcb = get_xcodeobject(xcodepath)
 
     # look for starting position
-    foundlocation = find_location(xcb, pathtogroup)
+    location = find_location(xcb, pathtogroup)
 
     # just in case it is needed, I think it is.
     project_dir = os.path.dirname(xcodepath)
     absdiskpath = os.path.abspath(diskpath)
     os.chdir(project_dir)
-    foundlocation.add_folder(absdiskpath)
+    xcb.mod_pbxproj.add_folder(absdiskpath, parent=location.guid)
 
     if not nosave:
-        xcb.save()
+        xcb.mod_pbxproj.save()
 
 
 def add_files(xcodepath, filestoadd, pathtogroup, nosave=False):
@@ -42,17 +64,18 @@ def add_files(xcodepath, filestoadd, pathtogroup, nosave=False):
     xcodepath, xcb = get_xcodeobject(xcodepath)
 
     # look for starting position
-    foundlocation = find_location(xcb, pathtogroup)
+    foundlocation = mod_pbxproj.PBXGroup(find_location(xcb, pathtogroup))
 
     # just in case it is needed, I think it is.
     project_dir = os.path.dirname(xcodepath)
     absdiskpaths = [os.path.abspath(diskpath) for diskpath in filestoadd]
     os.chdir(project_dir)
     for filetoadd in absdiskpaths:
-        foundlocation.add_file(filetoadd)
+        xcb.mod_pbxproj.add_file(filetoadd,
+                                 foundlocation)
 
     if not nosave:
-        xcb.save()
+        xcb.mod_pbxproj.save()
 
 
 def remove_location(xcodepath, pathtogroup, nosave=False):
@@ -63,13 +86,15 @@ def remove_location(xcodepath, pathtogroup, nosave=False):
     foundlocation = find_location(xcb, pathtogroup)
 
     # find parent node
-    parentnode = foundlocation.parent
+    parentnode = mod_pbxproj.PBXGroup(foundlocation.parent)
 
     # remove and save and done
     parentnode.remove_child(foundlocation.guid)
 
+    _cleanup(xcb, foundlocation.guid)
+
     if not nosave:
-        xcb.save()
+        xcb.mod_pbxproj.save()
 
 
 def sync_location(xcodepath, pathtogroup, nosave=False):
@@ -93,7 +118,7 @@ def sync_location(xcodepath, pathtogroup, nosave=False):
     remove_location(xcb, pathtogroup, nosave=True)
     add_folder(xcb, linkedfolder, parentpath, nosave=True)
     if not nosave:
-        xcb.save()
+        xcb.mod_pbxproj.save()
 
 
 def find_matching_regex(xcodepath, searchstring, location='//'):
@@ -154,6 +179,12 @@ def find_location(xcobject, location):
 
         children = pointer.children
         for child in children:
+
+            # this should never return str unless the object the id
+            # describes was not found, hence we skip
+            if isinstance(child, str):
+                continue
+
             if child.name == part or child.path == part:
                 pointer = child
                 break
