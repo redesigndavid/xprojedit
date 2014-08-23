@@ -7,6 +7,9 @@ import mod_pbxproj
 
 
 def _cleanup(xcodeobject, guid):
+    if guid not in xcodeobject.mod_pbxproj.get('objects'):
+        return
+
     node = xcodeobject.mod_pbxproj.get('objects').get(guid)
 
     # remove build files
@@ -64,15 +67,21 @@ def add_files(xcodepath, filestoadd, pathtogroup, nosave=False):
     xcodepath, xcb = get_xcodeobject(xcodepath)
 
     # look for starting position
-    foundlocation = mod_pbxproj.PBXGroup(find_location(xcb, pathtogroup))
+    foundlocation = find_location(xcb, pathtogroup)
+
+    filenames = [os.path.split(filetoadd)[-1] for filetoadd in filestoadd]
+    for child in foundlocation.children:
+        if child.name in filenames:
+            _cleanup(xcb, child.guid)
 
     # just in case it is needed, I think it is.
     project_dir = os.path.dirname(xcodepath)
     absdiskpaths = [os.path.abspath(diskpath) for diskpath in filestoadd]
     os.chdir(project_dir)
+
     for filetoadd in absdiskpaths:
         xcb.mod_pbxproj.add_file(filetoadd,
-                                 foundlocation)
+                                 foundlocation.guid)
 
     if not nosave:
         xcb.mod_pbxproj.save()

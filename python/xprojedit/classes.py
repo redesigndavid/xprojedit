@@ -2,6 +2,7 @@
 
 import collections
 import mod_pbxproj
+import re
 
 
 class XcodeNode(collections.MutableMapping):
@@ -21,8 +22,11 @@ class XcodeNode(collections.MutableMapping):
     def __convert(self, value):
         """return nodedata if value is a reference, else return value."""
 
-        if isinstance(value, str) and value in self.rawdata['objects']:
-            return XcodeNode(self.project, self, value)
+        if re.match('^[A-F0-9]{24}$', str(value)):
+            if isinstance(value, str) and value in self.rawdata['objects']:
+                return XcodeNode(self.project, self, value)
+            else:
+                return None
 
         return value
 
@@ -45,11 +49,15 @@ class XcodeNode(collections.MutableMapping):
         if isinstance(value, str):
             return self.__convert(value)
         elif isinstance(value, list) or isinstance(value, mod_pbxproj.PBXList):
-            return [self.__convert(val) for val in value]
+            li_value = [self.__convert(val) for val in value]
+            li_value = [val for val in li_value if val]
+            return li_value
         elif isinstance(value, dict) or isinstance(value, mod_pbxproj.PBXDict):
             new_dict = {}
             for k, v in value.items():
-                new_dict[self.__convert(k)] = self.__convert(v)
+                kv_value = self.__convert(v)
+                if kv_value:
+                    new_dict[self.__convert(k)] = self.__convert(v)
             return new_dict
         else:
             return value
@@ -77,8 +85,8 @@ class XcodeNode(collections.MutableMapping):
         if not self:
             return ''
 
-        children = self.children
-        if children:
+        if self.children:
+            children = [child for child in self.children if child]
             if dironly:
                 return {self: [child.tree(dironly) for child in children
                                if child.children]}
