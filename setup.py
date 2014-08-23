@@ -26,12 +26,7 @@ The python library *xprojedit.interface* has corresponding functions for each
 sub-command from the executable.  So if you'd like to write plug-ins for your
 favorite text editor, you could use the *xprojedit.interface* module.
 
-Even though there are already numerous packages available on the internet that
-let you make changes to xcode-projects, I still felt we needed another one
-because I did not see one package that included the subset of commands that I
-needed to work with xcode without ever having to open xcode, with the simple
-interface I felt we needed.
-
+This makes good use of mod_pbxproj.
 """
 
 setup(name='xprojedit',
