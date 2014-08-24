@@ -40,9 +40,7 @@ Install
 `$ git clone --recurse-submodules http://github.com/redesigndavid/xprojedit`
 `$ cd xprojedit && python setup.py build install`
 
-**Note**  
-
-This repo links to another github repo (hence the addition of
+**NOTE**  This repo links to another github repo (hence the addition of
 --recurse-submodules in the clone command).  When you run `python setup.py
 build install`, it would build and install both xprojedit and mod-pbxproj.  If
 you'd rather install the 2 yourself, just make sure you put both somewhere in
