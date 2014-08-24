@@ -1,0 +1,2 @@
+complete ee "p,*,F:/Users/$USER/projects/$PROJ/$PROJ,"
+alias ee "e $PROJHOME/$PROJ/\!*"

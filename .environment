@@ -1,0 +1,16 @@
+ 
+
+
+setenv PROJ xprojedit 
+setenv PROJHOME "~/projects/$PROJ"
+
+setenv PATH $PROJHOME/bin:$PATH
+setenv PYTHONPATH ${PROJHOME}/python:${PYTHONPATH}
+source $PROJHOME/.aliases
+
+
+setenv TESTPROJ $PROJHOME/testproject/test_cocos2d/proj.ios_mac/test_cocos2d.xcodeproj/project.pbxproj
+
+cd $PROJHOME
+
+
