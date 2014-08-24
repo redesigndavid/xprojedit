@@ -37,7 +37,7 @@ didn't want to duplicate efforts.
 Install
 -------
 
-`$ git clone --recurse-submodules http://github.com/redesigndavid/xprojedit`
+`$ git clone --recurse-submodules http://github.com/redesigndavid/xprojedit`  
 `$ cd xprojedit && python setup.py build install`
 
 **NOTE**  This repo links to another github repo (hence the addition of
